@@ -31,12 +31,8 @@ contract UniswapV3PoolDeployer is IUniswapV3PoolDeployer {
         uint24 fee,
         int24 tickSpacing
     ) internal returns (address pool) {
-        parameters = Parameters({factory: factory, 
-                                token0: token0, 
-                                token1: token1, 
-                                fee: fee, 
-                                tickSpacing: tickSpacing});
-                                // 这里不明白为什么设置了parameters， 就能部署了呢？
+        parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing});
+        // 这里不明白为什么设置了parameters， 就能部署了呢？
         //Pool构造函数
         //由Factory合约调用
         //Factory合约部署Pool时会存储相关参数到storage

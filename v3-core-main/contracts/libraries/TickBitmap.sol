@@ -13,7 +13,7 @@ library TickBitmap {
     /// @return bitPos The bit position in the word where the flag is stored
     function position(int24 tick) private pure returns (int16 wordPos, uint8 bitPos) {
         wordPos = int16(tick >> 8); // 移动2^8也就是256
-        bitPos = uint8(tick % 256);// 一个word = 8bit = 4字节
+        bitPos = uint8(tick % 256); // 一个word = 8bit = 4字节
     }
 
     /// @notice Flips the initialized state for a given tick from false to true, or vice versa
