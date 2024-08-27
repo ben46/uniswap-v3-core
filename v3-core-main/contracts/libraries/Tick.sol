@@ -14,25 +14,45 @@ library Tick {
     using SafeCast for int256;
 
     // info stored for each initialized individual tick
-    struct Info {
+    struct Info {    //tick不会记录手续费，否则无数tick手续费一统计，那gas惊人
+    // 所以我们记录区间外的手续费
+    //如果在（a,b）之间进行交易
+    //手续费会不断累加
+    //但是区间外是一直不变的
+    //所以区间内的手续费 = 总手续费 - 区间外手续费
+
         // the total position liquidity that references this tick
+        //引用此价格变动的总头寸流动性
         uint128 liquidityGross;
+
         // amount of net liquidity added (subtracted) when tick is crossed from left to right (right to left),
+        //当刻度从左到右（从右到左）穿过时添加（减去）的净流动性量
         int128 liquidityNet;
+
         // fee growth per unit of liquidity on the _other_ side of this tick (relative to the current tick)
         // only has relative meaning, not absolute — the value depends on when the tick is initialized
+        // 只记录tick区间外面的fee, pool mint/burn的时候会更新两次（一次是uppper，一次是lower)
+        //当价格穿过这个tick的时候
+        // 这个tick和上一个tick会exchange这个区间外手续费的值
         uint256 feeGrowthOutside0X128;
         uint256 feeGrowthOutside1X128;
+
         // the cumulative tick value on the other side of the tick
         int56 tickCumulativeOutside;
         // the seconds per unit of liquidity on the _other_ side of this tick (relative to the current tick)
         // only has relative meaning, not absolute — the value depends on when the tick is initialized
+        //此报价的_other_ 侧（相对于当前报价）每单位流动性的秒数仅具有相对意义，而不是绝对意义 — 该值取决于初始化报价的时间
+        // 秒数per流动性
         uint160 secondsPerLiquidityOutsideX128;
+
         // the seconds spent on the other side of the tick (relative to the current tick)
         // only has relative meaning, not absolute — the value depends on when the tick is initialized
+        //总秒数
         uint32 secondsOutside;
+
         // true iff the tick is initialized, i.e. the value is exactly equivalent to the expression liquidityGross != 0
         // these 8 bits are set to prevent fresh sstores when crossing newly initialized ticks
+        //在更新本tick的时候，如果发现流动性为0，那么说明还没初始化
         bool initialized;
     }
 
@@ -131,6 +151,7 @@ library Tick {
 
         if (liquidityGrossBefore == 0) {
             // by convention, we assume that all growth before a tick was initialized happened _below_ the tick
+            //按照惯例，我们假设在价格变动初始化之前的所有增长都发生在价格变动的_下方_
             if (tick <= tickCurrent) {
                 info.feeGrowthOutside0X128 = feeGrowthGlobal0X128;
                 info.feeGrowthOutside1X128 = feeGrowthGlobal1X128;
@@ -144,6 +165,7 @@ library Tick {
         info.liquidityGross = liquidityGrossAfter;
 
         // when the lower (upper) tick is crossed left to right (right to left), liquidity must be added (removed)
+        //当下（上）刻度从左到右（从右到左）交叉时，必须添加（删除）流动性
         info.liquidityNet = upper
             ? int256(info.liquidityNet).sub(liquidityDelta).toInt128()
             : int256(info.liquidityNet).add(liquidityDelta).toInt128();
@@ -158,7 +180,7 @@ library Tick {
 
     /// @notice Transitions to next tick as needed by price movement
     /// @param self The mapping containing all tick information for initialized ticks
-    /// @param tick The destination tick of the transition
+    /// @param tick The destination tick of the transition 这次交易的终点
     /// @param feeGrowthGlobal0X128 The all-time global fee growth, per unit of liquidity, in token0
     /// @param feeGrowthGlobal1X128 The all-time global fee growth, per unit of liquidity, in token1
     /// @param secondsPerLiquidityCumulativeX128 The current seconds per liquidity
@@ -174,11 +196,19 @@ library Tick {
         int56 tickCumulative,
         uint32 time
     ) internal returns (int128 liquidityNet) {
+        // 拿出下一个tick
         Tick.Info storage info = self[tick];
+
+        //区间外手续费 = 全局手续费 - 区间外手续费？？？？这里看不懂
         info.feeGrowthOutside0X128 = feeGrowthGlobal0X128 - info.feeGrowthOutside0X128;
         info.feeGrowthOutside1X128 = feeGrowthGlobal1X128 - info.feeGrowthOutside1X128;
+        // 
         info.secondsPerLiquidityOutsideX128 = secondsPerLiquidityCumulativeX128 - info.secondsPerLiquidityOutsideX128;
+
+        // tick * time的累计值（从pool被建立开始算）
         info.tickCumulativeOutside = tickCumulative - info.tickCumulativeOutside;
+
+        //时间 = 当前时间 - 上一次时间 ？？？不明白
         info.secondsOutside = time - info.secondsOutside;
         liquidityNet = info.liquidityNet;
     }

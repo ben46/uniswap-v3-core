@@ -12,8 +12,8 @@ library TickBitmap {
     /// @return wordPos The key in the mapping containing the word in which the bit is stored
     /// @return bitPos The bit position in the word where the flag is stored
     function position(int24 tick) private pure returns (int16 wordPos, uint8 bitPos) {
-        wordPos = int16(tick >> 8);
-        bitPos = uint8(tick % 256);
+        wordPos = int16(tick >> 8); // 移动2^8也就是256
+        bitPos = uint8(tick % 256);// 一个word = 8bit = 4字节
     }
 
     /// @notice Flips the initialized state for a given tick from false to true, or vice versa
@@ -28,7 +28,7 @@ library TickBitmap {
         require(tick % tickSpacing == 0); // ensure that the tick is spaced
         (int16 wordPos, uint8 bitPos) = position(tick / tickSpacing);
         uint256 mask = 1 << bitPos;
-        self[wordPos] ^= mask;
+        self[wordPos] ^= mask; // 256个word???
     }
 
     /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either

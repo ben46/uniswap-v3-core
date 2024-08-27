@@ -12,11 +12,15 @@ library Position {
     // info stored for each user's position
     ///用户position的数据结构
     struct Info {
+
         // the amount of liquidity owned by this position
-        uint128 liquidity;
+        uint128 liquidity;//该用户提供的流动性数量，流动性数量 * fee per liquidity = 该用户得到的手续费
+
         // fee growth per unit of liquidity as of the last update to liquidity or fees owed
+        // 交易的时候不会更新，只有mint和burn流动性的时候会更新
         uint256 feeGrowthInside0LastX128;
         uint256 feeGrowthInside1LastX128;
+
         // the fees owed to the position owner in token0/token1
         uint128 tokensOwed0;
         uint128 tokensOwed1;
